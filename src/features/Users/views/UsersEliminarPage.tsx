@@ -24,12 +24,13 @@ export default function UsersEliminarPage() {
 
     return (
         <Box>
-            <h2>Eliminar Usuarios</h2>
+            <h2>Eliminar Clientes</h2>
             {users.map(user => (
                 <Box key={user.id} sx={{ mb: 2, p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
                     <p>ID: {user.id}</p>
                     <p>Nombre: {user.name}</p>
                     <p>Email: {user.email}</p>
+                    <p>DNI: {user.dni ?? '-'}</p>
                     <Button variant="outlined" color="error" onClick={() => handleEliminar(user.id)}>Eliminar</Button>
                 </Box>
             ))}

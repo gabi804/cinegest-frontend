@@ -42,6 +42,7 @@ export default function UsersEditarPage() {
     if (!form.email || !form.email.toString().trim()) return 'El email es obligatorio';
     const re = /^\S+@\S+\.\S+$/;
     if (!re.test(String(form.email))) return 'Email inválido';
+    if (form.dni && !/^[0-9]{7,}$/.test(String(form.dni))) return 'DNI inválido (solo números, mínimo 7 dígitos)';
     return null;
   }
 
@@ -55,7 +56,7 @@ export default function UsersEditarPage() {
     setLoading(true);
     try {
       await UsersService.actualizarUser(Number(id), form);
-      setSnack({ open: true, message: 'Usuario actualizado', severity: 'success' });
+      setSnack({ open: true, message: 'Cliente actualizado', severity: 'success' });
       setTimeout(() => navigate('/users'), 700);
     } catch (e: any) {
       setSnack({ open: true, message: e?.message ?? 'Error al actualizar', severity: 'error' });
@@ -67,7 +68,7 @@ export default function UsersEditarPage() {
   return (
     <Box sx={{ p: 4, background: '#f0f4f8', minHeight: '100vh' }}>
       <Typography variant="h3" sx={{ fontWeight: 700, color: '#1976d2', mb: 4 }}>
-        Editar Usuario
+        Editar Cliente
       </Typography>
 
       <Paper sx={{ p: 4, maxWidth: 400, mx: 'auto', borderRadius: 3, background: 'linear-gradient(135deg, #ffffff, #e3f2fd)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
@@ -88,6 +89,14 @@ export default function UsersEditarPage() {
             onChange={handleChange}
             fullWidth
             required
+          />
+
+          <TextField
+            label="DNI"
+            name="dni"
+            value={form.dni ?? ''}
+            onChange={handleChange}
+            fullWidth
           />
 
           <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>

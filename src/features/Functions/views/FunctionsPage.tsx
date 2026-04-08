@@ -1,42 +1,55 @@
 import { useEffect, useState } from 'react';
 import { FunctionsService } from '../services/FunctionsService';
 import type { FunctionEntity } from '../types/FunctionTypes';
-import { Box, Typography, Paper, Button, IconButton } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
+import { Box, Typography, Paper, Button, IconButton, Snackbar, Alert, Chip, TextField } from '@mui/material';
+import { Edit, Delete, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { api } from 'src/shared/libs/nestAxios';
 
 export default function FunctionsPage() {
-  const [functions, setFunctions] = useState<FunctionEntity[]>([]);
-  const [movies, setMovies] = useState<{ id: number; title: string }[]>([]);
-  const [rooms, setRooms] = useState<{ id: number; name: string }[]>([]);
+  const [allFunctions, setAllFunctions] = useState<FunctionEntity[]>([]);
+  const [showInactive, setShowInactive] = useState(() => {
+    const saved = localStorage.getItem('functions_showInactive');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+
+  // Guardar estado en localStorage cada que cambia
+  useEffect(() => {
+    localStorage.setItem('functions_showInactive', JSON.stringify(showInactive));
+  }, [showInactive]);
+
+  const displayedFunctions = (showInactive
+    ? allFunctions.filter(f => !f.active)
+    : allFunctions.filter(f => f.active))
+    .filter(f => {
+      if (!searchTerm.trim()) return true;
+      const query = searchTerm.toLowerCase();
+      return f.movie?.title?.toLowerCase().includes(query)
+        || f.room?.name?.toLowerCase().includes(query)
+        || f.date?.toLowerCase().includes(query)
+        || `${f.id}`.includes(query);
+    });
 
   useEffect(() => {
     async function fetchData() {
       const funcs = await FunctionsService.obtenerFunctions();
-      setFunctions(funcs);
-
-      const mv = await api.get('/movie');
-      setMovies(mv.data);
-
-      const rm = await api.get('/rooms');
-      setRooms(rm.data);
+      setAllFunctions(funcs);
     }
     fetchData();
   }, []);
 
-  function getMovieTitle(id: number) {
-    return movies.find(m => m.id === id)?.title ?? `#${id}`;
-  }
-
-  function getRoomName(id: number) {
-    return rooms.find(r => r.id === id)?.name ?? `#${id}`;
-  }
-
   async function handleDelete(id: number) {
-    await FunctionsService.eliminarFunction(id);
-    setFunctions(prev => prev.filter(f => f.id !== id));
+    try {
+      await FunctionsService.eliminarFunction(id);
+      setAllFunctions(prev => 
+        prev.map(f => f.id === id ? { ...f, active: false } : f)
+      );
+      setSnack({ open: true, message: 'Función marcada como inactiva', severity: 'success' });
+    } catch (e: any) {
+      setSnack({ open: true, message: e?.message || 'Error al eliminar función', severity: 'error' });
+    }
   }
 
   return (
@@ -65,52 +78,84 @@ export default function FunctionsPage() {
         </Button>
       </Box>
 
-      {functions.length === 0 ? (
+      {/* Filtro para mostrar inactivos */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Chip
+          icon={showInactive ? <VisibilityOff /> : <Visibility />}
+          label={showInactive ? 'Mostrando inactivos' : 'Mostrando activos'}
+          onClick={() => {
+            setShowInactive(!showInactive);
+            setSearchTerm('');
+          }}
+          variant={showInactive ? 'filled' : 'outlined'}
+          color={showInactive ? 'error' : 'primary'}
+          sx={{ fontWeight: 600 }}
+        />
+        {showInactive && (
+          <TextField
+            label="Buscar (película/sala/fecha)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            size="small"
+            sx={{ minWidth: 220 }}
+          />
+        )}
+      </Box>
+
+      {displayedFunctions.length === 0 ? (
         <Typography variant="h6" sx={{ color: '#555' }}>
-          No hay funciones cargadas.
+          No hay {showInactive ? 'funciones inactivas' : 'funciones cargadas'}.
         </Typography>
       ) : (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 3 }}>
-          {functions.map(f => (
+          {displayedFunctions.map(f => (
             <Paper
               key={f.id}
               sx={{
                 p: 3,
                 borderRadius: 3,
-                background: 'linear-gradient(135deg, #ffffff, #e3f2fd)',
+                background: showInactive
+                  ? 'linear-gradient(135deg, #ffebee, #ffcdd2)'
+                  : 'linear-gradient(135deg, #ffffff, #e3f2fd)',
                 boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
                 transition: '0.3s',
                 '&:hover': {
                   transform: 'translateY(-5px)',
                   boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
                 },
+                opacity: showInactive ? 0.7 : 1,
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                {getMovieTitle(f.movie.id)}
+                {f.movie?.title || 'Sin película'}
               </Typography>
-              <Typography sx={{ mb: 0.5 }}>Sala: {getRoomName(f.room.id)}</Typography>
+              <Typography sx={{ mb: 0.5 }}>Sala: {f.room?.name || 'Sin sala'}</Typography>
               <Typography sx={{ mb: 0.5 }}>Fecha: {f.date}</Typography>
               <Typography sx={{ mb: 0.5 }}>Hora: {f.time}</Typography>
               <Typography sx={{ mb: 0.5 }}>Precio: ${f.price}</Typography>
-              <Typography sx={{ mb: 2 }}>Asientos disponibles: {f.availableSeats}</Typography>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <IconButton
-                  color="primary"
-                  sx={{ '&:hover': { color: '#1976d2' } }}
-                  onClick={() => navigate(`editar/${f.id}`)}
-                >
-                  <Edit />
-                </IconButton>
-                <IconButton color="error" onClick={() => handleDelete(f.id)}>
-                  <Delete />
-                </IconButton>
-              </Box>
+              {!showInactive && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <IconButton
+                    color="primary"
+                    sx={{ '&:hover': { color: '#1976d2' } }}
+                    onClick={() => navigate(`editar/${f.id}`)}
+                  >
+                    <Edit />
+                  </IconButton>
+                  <IconButton color="error" onClick={() => handleDelete(f.id)}>
+                    <Delete />
+                  </IconButton>
+                </Box>
+              )}
             </Paper>
           ))}
         </Box>
       )}
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
+        <Alert severity={snack.severity} sx={{ width: '100%' }}>{snack.message}</Alert>
+      </Snackbar>
     </Box>
   );
 }

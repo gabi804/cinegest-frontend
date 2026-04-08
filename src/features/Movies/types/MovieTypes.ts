@@ -3,12 +3,15 @@ export interface Movie {
   title: string;
   genre: string;
   duration: number;
+  subtitled?: boolean;
+  active?: boolean;
 }
 
 export interface MovieCreateDto {
   title: string;
   genre: string;
   duration: number;
+  subtitled?: boolean;
 }
 
 export interface MovieUpdateDto {
@@ -16,4 +19,5 @@ export interface MovieUpdateDto {
   title: string;
   genre: string;
   duration: number;
+  subtitled?: boolean;
 }

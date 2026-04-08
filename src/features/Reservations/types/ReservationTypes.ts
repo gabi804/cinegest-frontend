@@ -8,7 +8,7 @@ export interface Reservation {
   user: User;
   function: FunctionEntity;
   seats: number;
-  
+  active?: boolean;
 }
 
 export interface ReservationCreateDto {

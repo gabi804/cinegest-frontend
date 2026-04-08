@@ -1,36 +1,72 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FunctionsService } from '../services/FunctionsService';
-import type { FunctionEntity } from '../types/FunctionTypes';
-import { Box, TextField, Button, Typography, Paper, Snackbar, Alert } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Snackbar,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from '@mui/material';
+import { api } from 'src/shared/libs/nestAxios';
 
 export default function FunctionsEditarPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<Partial<FunctionEntity>>({});
+  const [form, setForm] = useState<any>({
+    movie: '',
+    room: '',
+    date: '',
+    time: '',
+    price: 0,
+  });
+  const [movies, setMovies] = useState<{ id: number; title: string }[]>([]);
+  const [rooms, setRooms] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    async function fetchFunction() {
+    async function fetchData() {
       if (!id) return;
       try {
+        // Cargar lista de películas y salas
+        const mv = await api.get('/movie');
+        setMovies(mv.data);
+        const rm = await api.get('/rooms');
+        setRooms(rm.data);
+
+        // Cargar la función específica
         const resultado = await FunctionsService.obtenerFunctions();
         const func = resultado.find(f => f.id === Number(id));
-        if (func) setForm(func);
-        else setSnack({ open: true, message: 'Función no encontrada', severity: 'error' });
+        if (func) {
+          setForm({
+            movie: func.movie?.id || '',
+            room: func.room?.id || '',
+            date: func.date || '',
+            time: func.time || '',
+            price: func.price || 0,
+          });
+        } else {
+          setSnack({ open: true, message: 'Función no encontrada', severity: 'error' });
+        }
       } catch (e: any) {
         setSnack({ open: true, message: e?.message || 'Error al cargar la función', severity: 'error' });
       } finally {
         setLoading(false);
       }
     }
-    fetchFunction();
+    fetchData();
   }, [id]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
@@ -38,7 +74,13 @@ export default function FunctionsEditarPage() {
     if (!id) return;
     setSaving(true);
     try {
-      await FunctionsService.actualizarFunction(Number(id), form);
+      await FunctionsService.actualizarFunction(Number(id), {
+        movie: Number(form.movie),
+        room: Number(form.room),
+        date: form.date,
+        time: form.time,
+        price: Number(form.price),
+      });
       setSnack({ open: true, message: 'Función actualizada', severity: 'success' });
       setTimeout(() => navigate('/functions'), 700);
     } catch (e: any) {
@@ -58,12 +100,56 @@ export default function FunctionsEditarPage() {
 
       <Paper sx={{ p: 4, maxWidth: 600, mx: 'auto', borderRadius: 3, background: 'linear-gradient(135deg, #ffffff, #e3f2fd)', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField label="Movie ID" name="movie" value={form.movie || ''} onChange={handleChange} fullWidth />
-          <TextField label="Room ID" name="room" value={form.room || ''} onChange={handleChange} fullWidth />
-          <TextField label="Fecha" name="date" value={form.date || ''} onChange={handleChange} fullWidth />
-          <TextField label="Hora" name="time" value={form.time || ''} onChange={handleChange} fullWidth />
-          <TextField label="Precio" name="price" type="number" value={form.price || 0} onChange={handleChange} fullWidth />
-          <TextField label="Asientos disponibles" name="availableSeats" type="number" value={form.availableSeats || 0} onChange={handleChange} fullWidth />
+          <FormControl fullWidth>
+            <InputLabel>Película</InputLabel>
+            <Select
+              value={form.movie}
+              label="Película"
+              name="movie"
+              onChange={(e) => setForm({ ...form, movie: e.target.value })}
+            >
+              {movies.map(m => <MenuItem key={m.id} value={m.id}>{m.title}</MenuItem>)}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Sala</InputLabel>
+            <Select
+              value={form.room}
+              label="Sala"
+              name="room"
+              onChange={(e) => setForm({ ...form, room: e.target.value })}
+            >
+              {rooms.map(r => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Fecha"
+            name="date"
+            type="date"
+            value={form.date}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          <TextField
+            label="Hora"
+            name="time"
+            type="time"
+            value={form.time}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          <TextField
+            label="Precio"
+            name="price"
+            type="number"
+            value={form.price || 0}
+            onChange={handleChange}
+            fullWidth
+          />
 
           <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <Button

@@ -20,12 +20,11 @@ import { api } from 'src/shared/libs/nestAxios';
 export default function FunctionsCrearPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<FunctionCrearDto>({
-    movie: 0,
-    room: 0,
+    movie: '',
+    room: '',
     date: '',
     time: '',
     price: 0,
-    availableSeats: 0
   });
   const [movies, setMovies] = useState<{ id: number; title: string }[]>([]);
   const [rooms, setRooms] = useState<{ id: number; name: string }[]>([]);
@@ -36,7 +35,9 @@ export default function FunctionsCrearPage() {
     async function fetchLists() {
       try {
         const mv = await api.get('/movie');
-        setMovies(mv.data);
+        // show only active movies when creating a function
+        const activeMovies = (mv.data || []).filter((m: any) => m.active !== false);
+        setMovies(activeMovies);
         const rm = await api.get('/rooms');
         setRooms(rm.data);
       } catch (e) {
@@ -56,7 +57,7 @@ export default function FunctionsCrearPage() {
     }
     setLoading(true);
     try {
-      await FunctionsService.crearFunction(form);
+      await FunctionsService.crearFunction({ ...form, movie: Number(form.movie), room: Number(form.room) });
       setSnack({ open: true, message: 'Función creada', severity: 'success' });
       setTimeout(() => navigate('/functions'), 700);
     } catch (e: any) {
@@ -127,15 +128,7 @@ export default function FunctionsCrearPage() {
           sx={{ mb: 2 }}
         />
 
-        <TextField
-          label="Asientos disponibles"
-          name="availableSeats"
-          type="number"
-          value={form.availableSeats}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 3 }}
-        />
+        {/* Seat capacity is defined on the Room entity; functions use their room's capacity */}
 
         <Button
           variant="contained"

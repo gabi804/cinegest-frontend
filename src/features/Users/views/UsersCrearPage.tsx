@@ -15,6 +15,7 @@ import {
 export default function UsersCrearPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [dni, setDni] = useState('');
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
 
@@ -25,6 +26,7 @@ export default function UsersCrearPage() {
     if (!email.trim()) return 'El email es obligatorio';
     const re = /^\S+@\S+\.\S+$/;
     if (!re.test(email)) return 'Email inválido';
+    if (dni && !/^\d{7,}$/.test(dni)) return 'DNI inválido (solo números, mínimo 7 dígitos)';
     return null;
   }
 
@@ -36,9 +38,9 @@ export default function UsersCrearPage() {
     }
     setLoading(true);
     try {
-      const dto: UserCrearDto = { name: name.trim(), email: email.trim() };
+      const dto: UserCrearDto = { name: name.trim(), email: email.trim(), dni: dni.trim() };
       await UsersService.crearUser(dto);
-      setSnack({ open: true, message: 'Usuario creado', severity: 'success' });
+      setSnack({ open: true, message: 'Cliente creado', severity: 'success' });
       setTimeout(() => navigate('/users'), 700);
     } catch (e: any) {
       setSnack({ open: true, message: e?.message ?? 'Error al crear usuario', severity: 'error' });
@@ -50,7 +52,7 @@ export default function UsersCrearPage() {
   return (
     <Box sx={{ p: 4, background: '#f0f4f8', minHeight: '100vh' }}>
       <Typography variant="h3" sx={{ fontWeight: 700, color: '#1976d2', mb: 4 }}>
-        Crear Usuario
+        Crear Cliente
       </Typography>
 
       <Paper sx={{ p: 4, maxWidth: 400, mx: 'auto', borderRadius: 3, background: 'linear-gradient(135deg, #ffffff, #e3f2fd)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
@@ -69,6 +71,13 @@ export default function UsersCrearPage() {
             onChange={e => setEmail(e.target.value)}
             fullWidth
             required
+          />
+
+          <TextField
+            label="DNI"
+            value={dni}
+            onChange={e => setDni(e.target.value)}
+            fullWidth
           />
 
           <Button

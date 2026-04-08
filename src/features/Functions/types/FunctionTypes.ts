@@ -7,14 +7,13 @@ export interface FunctionEntity {
   date: string;
   time: string;
   price: number;
-  availableSeats: number;
+  active: boolean;
 }
 
 export interface FunctionCrearDto {
-  movie: number;
-  room: number;
+  movie: number | '';
+  room: number | '';
   date: string;
   time: string;
   price: number;
-  availableSeats: number;
 }

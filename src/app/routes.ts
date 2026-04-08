@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
+import LoginPage from "../features/Auth/views/LoginPage";
 import MoviesPage from "../features/Movies/views/MoviesPage";
 import MoviesCrearPage from "../features/Movies/views/MoviesCrearPage";
 import MoviesEliminarPage from "../features/Movies/views/MoviesEliminarPage";
@@ -10,7 +11,12 @@ import ReservationsEditarPage from "../features/Reservations/Views/ReservationsE
 import ReservationsEliminarPage from "../features/Reservations/Views/ReservationsEliminarPage";
 // Functions, Rooms and Users routes will be lazy-loaded to avoid top-level import issues
 
+
 export const router = createBrowserRouter([
+    {
+        path: "/login",
+        Component: LoginPage,
+    },
     {
         path: "/",
         Component: AppLayout,
@@ -20,6 +26,7 @@ export const router = createBrowserRouter([
             { path: "movies/eliminar", Component: MoviesEliminarPage },
             { path: "movies/editar/:id", lazy: () => import('../features/Movies/views/MoviesEditarPage').then((m:any) => ({ Component: m.default ?? m })) },
             { path: "reservations", Component: ReservationsPage },
+            { path: "reservations/historial", lazy: () => import('../features/Reservations/Views/HistorialPage').then((m:any) => ({ Component: m.default ?? m })) },
             { path: "reservations/crear", Component: ReservationsCrearPage },
             { path: "reservations/editar", Component: ReservationsEditarPage },
             { path: "reservations/eliminar", Component: ReservationsEliminarPage },
@@ -35,8 +42,12 @@ export const router = createBrowserRouter([
             { path: "users/crear", lazy: () => import('../features/Users/views/UsersCrearPage').then((m:any) => ({ Component: m.default ?? m })) },
             { path: "users/eliminar", lazy: () => import('../features/Users/views/UsersEliminarPage').then((m:any) => ({ Component: m.default ?? m })) },
             { path: "users/editar/:id", lazy: () => import('../features/Users/views/UsersEditarPage').then((m:any) => ({ Component: m.default ?? m })) },
-
+            { path: "reports", lazy: () => import('../features/Reports/views/ReportsPage').then((m:any) => ({ Component: m.default ?? m })) },
+            { path: "reports/movies", lazy: () => import('../features/Reports/views/MoviesReportPage').then((m:any) => ({ Component: m.default ?? m })) },
+            { path: "reports/rooms-occupancy", lazy: () => import('../features/Reports/views/RoomsOccupancyReportPage').then((m:any) => ({ Component: m.default ?? m })) },
+            { path: "reports/revenue", lazy: () => import('../features/Reports/views/RevenueReportPage').then((m:any) => ({ Component: m.default ?? m })) },
+            { path: "reports/historial", lazy: () => import('../features/Reports/views/HistorialReservacionesPage').then((m:any) => ({ Component: m.default ?? m })) },
+            { path: "admin/profile", lazy: () => import('../features/Auth/views/AdminProfilePage').then((m:any) => ({ Component: m.default ?? m })) },
         ]
     },
 ])
-    

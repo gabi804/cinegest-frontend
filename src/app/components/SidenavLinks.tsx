@@ -1,6 +1,8 @@
 
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import AnalyticsIcon from "@mui/icons-material/Analytics";
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 
 import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -49,7 +51,9 @@ export default function SidenavLinks(props: SidenavLinksProps) {
             <SidenavLink to="/reservations" icon={<Inventory2OutlinedIcon />} label="Reservas" onClick={props.handleClick} />
             <SidenavLink to="/functions" icon={<Inventory2OutlinedIcon />} label="Funciones" onClick={props.handleClick} />
             <SidenavLink to="/rooms" icon={<Inventory2OutlinedIcon />} label="Salas" onClick={props.handleClick} />
-           <SidenavLink to="/users" icon={<PeopleAltOutlinedIcon />} label="Usuarios" onClick={props.handleClick}/>
+           <SidenavLink to="/users" icon={<PeopleAltOutlinedIcon />} label="Clientes" onClick={props.handleClick}/>
+           <SidenavLink to="/reports" icon={<AnalyticsIcon />} label="Historial y Reportes" onClick={props.handleClick}/>
+           <SidenavLink to="/admin/profile" icon={<AccountCircleOutlinedIcon />} label="Perfil" onClick={props.handleClick}/>
 
         </>
     )

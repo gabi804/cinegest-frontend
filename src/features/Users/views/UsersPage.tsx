@@ -7,31 +7,63 @@ import {
   Button,
   Paper,
   IconButton,
+  Snackbar,
+  Alert,
+  Chip,
+  TextField,
 } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
+import { Edit, Delete, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [showInactive, setShowInactive] = useState(() => {
+    const saved = localStorage.getItem('users_showInactive');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+
+  // Guardar estado en localStorage cada que cambia
+  useEffect(() => {
+    localStorage.setItem('users_showInactive', JSON.stringify(showInactive));
+  }, [showInactive]);
+
+  const displayedUsers = (showInactive
+    ? allUsers.filter(u => !u.active)
+    : allUsers.filter(u => u.active))
+    .filter(u => {
+      if (!searchTerm.trim()) return true;
+      const query = searchTerm.toLowerCase();
+      return u.name.toLowerCase().includes(query)
+        || `${u.dni ?? ''}`.includes(query);
+    });
 
   useEffect(() => {
     async function fetchUsers() {
       const resultado = await UsersService.obtenerUsers();
-      setUsers(resultado);
+      setAllUsers(resultado);
     }
     fetchUsers();
   }, []);
 
   async function handleDelete(id: number) {
-    await UsersService.eliminarUser(id);
-    setUsers(prev => prev.filter(u => u.id !== id));
+    try {
+      await UsersService.eliminarUser(id);
+      setAllUsers(prev =>
+        prev.map(u => u.id === id ? { ...u, active: false } : u)
+      );
+      setSnack({ open: true, message: 'Cliente marcado como inactivo', severity: 'success' });
+    } catch (e: any) {
+      setSnack({ open: true, message: e?.message || 'Error al eliminar cliente', severity: 'error' });
+    }
   }
 
   return (
     <Box sx={{ p: 4, background: '#f5f7fa', minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 700, color: '#1976d2' }}>Usuarios</Typography>
+        <Typography variant="h3" sx={{ fontWeight: 700, color: '#1976d2' }}>Clientes</Typography>
         <Button
           variant="contained"
           sx={{
@@ -49,55 +81,89 @@ export default function UsersPage() {
           }}
           onClick={() => navigate('crear')}
         >
-          Crear Usuario
+          Crear Cliente
         </Button>
       </Box>
 
-      {users.length === 0 ? (
+      {/* Filtro para mostrar inactivos */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Chip
+          icon={showInactive ? <VisibilityOff /> : <Visibility />}
+          label={showInactive ? 'Mostrando inactivos' : 'Mostrando activos'}
+          onClick={() => {
+            setShowInactive(!showInactive);
+            setSearchTerm('');
+          }}
+          variant={showInactive ? 'filled' : 'outlined'}
+          color={showInactive ? 'error' : 'primary'}
+          sx={{ fontWeight: 600 }}
+        />
+        {showInactive && (
+          <TextField
+            label="Buscar (nombre o DNI)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            size="small"
+            sx={{ minWidth: 220 }}
+          />
+        )}
+      </Box>
+
+      {displayedUsers.length === 0 ? (
         <Typography variant="h6" sx={{ color: '#555' }}>
-          No hay usuarios cargados.
+          No hay {showInactive ? 'clientes inactivos' : 'clientes cargados'}.
         </Typography>
       ) : (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 3 }}>
-          {users.map(user => (
+          {displayedUsers.map(user => (
             <Paper
               key={user.id}
               sx={{
                 p: 3,
                 borderRadius: 3,
-                background: 'linear-gradient(135deg, #ffffff, #e3f2fd)',
+                background: showInactive
+                  ? 'linear-gradient(135deg, #ffebee, #ffcdd2)'
+                  : 'linear-gradient(135deg, #ffffff, #e3f2fd)',
                 boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
                 transition: '0.3s',
                 '&:hover': {
                   transform: 'translateY(-5px)',
                   boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
                 },
+                opacity: showInactive ? 0.7 : 1,
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 {user.name}
               </Typography>
               <Typography sx={{ mb: 1 }}>ID: {user.id}</Typography>
-              <Typography sx={{ mb: 2 }}>Email: {user.email}</Typography>
+              <Typography sx={{ mb: 1 }}>Email: {user.email}</Typography>
+              <Typography sx={{ mb: 2 }}>DNI: {user.dni ?? '-'}</Typography>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <IconButton
-                  color="primary"
-                  sx={{
-                    '&:hover': { color: '#1976d2' },
-                  }}
-                  onClick={() => navigate(`editar/${user.id}`)}
-                >
-                  <Edit />
-                </IconButton>
-                <IconButton color="error" onClick={() => handleDelete(user.id)}>
-                  <Delete />
-                </IconButton>
-              </Box>
+              {!showInactive && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <IconButton
+                    color="primary"
+                    sx={{
+                      '&:hover': { color: '#1976d2' },
+                    }}
+                    onClick={() => navigate(`editar/${user.id}`)}
+                  >
+                    <Edit />
+                  </IconButton>
+                  <IconButton color="error" onClick={() => handleDelete(user.id)}>
+                    <Delete />
+                  </IconButton>
+                </Box>
+              )}
             </Paper>
           ))}
         </Box>
       )}
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack(s => ({ ...s, open: false }))}>
+        <Alert severity={snack.severity} sx={{ width: '100%' }}>{snack.message}</Alert>
+      </Snackbar>
     </Box>
   );
 }

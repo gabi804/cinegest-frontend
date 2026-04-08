@@ -12,17 +12,21 @@ import {
   FormControl,
   Snackbar,
   Alert,
-  Paper
+  Paper,
+  Autocomplete
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { api } from "src/shared/libs/nestAxios";
+import { UsersService } from 'src/features/Users/services/UsersService';
 
 export default function ReservationsCrearPage() {
   const [userId, setUserId] = useState<number>(0);
   const [functionId, setFunctionId] = useState<number>(0);
   const [seats, setSeats] = useState<number>(1);
-  const [users, setUsers] = useState<{ id: number; name: string }[]>([]);
+  const [userQuery, setUserQuery] = useState('');
+  const [userOptions, setUserOptions] = useState<{ id: number; name: string }[]>([]);
   const [functions, setFunctions] = useState<{ id: number; movieTitle?: string; roomName?: string; }[]>([]);
+  const [availableSeatsForFunction, setAvailableSeatsForFunction] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
 
@@ -31,16 +35,18 @@ export default function ReservationsCrearPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const usersResult = await api.get("/users");
-        setUsers(usersResult.data);
-
-        const functionsResult = await api.get("/functions");
-        const mappedFunctions = functionsResult.data.map((f: any) => ({
-          id: f.id,
-          movieTitle: f.movie?.title ?? 'Función',
-          roomName: f.room?.name ?? ''
-        }));
-        setFunctions(mappedFunctions);
+          const functionsResult = await api.get("/functions");
+          // only allow active functions as options for creating reservations
+          const activeFunctions = (functionsResult.data || []).filter((f: any) => f.active !== false);
+          const mappedFunctions = activeFunctions.map((f: any) => ({
+            id: f.id,
+            movieTitle: f.movie?.title ?? 'Función',
+            roomName: f.room?.name ?? '',
+            date: f.date,
+            time: f.time,
+            price: f.price
+          }));
+          setFunctions(mappedFunctions);
       } catch (e: any) {
         console.error("Error fetching data:", e);
       }
@@ -48,18 +54,56 @@ export default function ReservationsCrearPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        if (!userQuery || userQuery.length < 2) {
+          setUserOptions([]);
+          return;
+        }
+        const res = await UsersService.searchUsers(userQuery);
+        setUserOptions(res || []);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [userQuery]);
+
+  useEffect(() => {
+    async function fetchAvailability() {
+      if (!functionId) {
+        setAvailableSeatsForFunction(null);
+        return;
+      }
+      try {
+        const res = await api.get(`/functions/${functionId}/availability`);
+        setAvailableSeatsForFunction(res.data?.available ?? null);
+      } catch (e) {
+        console.error(e);
+        setAvailableSeatsForFunction(null);
+      }
+    }
+    fetchAvailability();
+  }, [functionId]);
+
   async function handleSubmit() {
     if (!userId || !functionId || seats <= 0)
       return setSnack({ open: true, message: 'Completa todos los campos', severity: 'error' });
+
+    if (availableSeatsForFunction !== null && seats > availableSeatsForFunction) {
+      return setSnack({ open: true, message: `No hay suficientes asientos. Disponibles: ${availableSeatsForFunction}`, severity: 'error' });
+    }
 
     setLoading(true);
     try {
       const dto: ReservationCreateDto = { userId, functionId, seats };
       await ReservationsService.crearReserva(dto);
       setSnack({ open: true, message: 'Reserva creada', severity: 'success' });
-      setTimeout(() => navigate('/reservations'), 700);
+      setTimeout(() => navigate('/reservations?refresh=true'), 700);
     } catch (e: any) {
-      setSnack({ open: true, message: e?.message ?? 'Error al crear reserva', severity: 'error' });
+      const msg = e?.response?.data?.message ?? e?.message ?? 'Error al crear reserva';
+      setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -73,23 +117,31 @@ export default function ReservationsCrearPage() {
 
       <Paper sx={{ p: 4, maxWidth: 400, mx: 'auto', borderRadius: 3, background: 'linear-gradient(135deg, #ffffff, #e3f2fd)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel>Usuario</InputLabel>
-            <Select value={userId} onChange={(e) => setUserId(Number(e.target.value))}>
-              {users.map(u => <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>)}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={userOptions}
+            getOptionLabel={(option: any) => option.name ?? ''}
+            onInputChange={(_, value) => setUserQuery(value)}
+            onChange={(_, value: any) => setUserId(value?.id ?? 0)}
+            renderInput={(params) => <TextField {...params} label="Cliente" />}
+            freeSolo={false}
+          />
 
           <FormControl fullWidth>
             <InputLabel>Función</InputLabel>
             <Select value={functionId} onChange={(e) => setFunctionId(Number(e.target.value))}>
-              {functions.map(f => (
+              {functions.map((f: any) => (
                 <MenuItem key={f.id} value={f.id}>
-                  {f.movieTitle} - {f.roomName}
+                  {`${f.date} ${f.time} — ${f.movieTitle} — ${f.roomName} — $${f.price}`}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
+
+          {availableSeatsForFunction !== null && (
+            <Typography sx={{ color: availableSeatsForFunction > 0 ? 'green' : 'red' }}>
+              Disponibles: {availableSeatsForFunction}
+            </Typography>
+          )}
 
           <TextField
             label="Asientos"

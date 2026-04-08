@@ -12,7 +12,7 @@ export class FunctionsService {
     return result;
   }
 
-  static async actualizarFunction(id: number, dto: Partial<FunctionEntity>) {
+  static async actualizarFunction(id: number, dto: Partial<FunctionCrearDto>) {
     const result = await api.put(`/functions/${id}`, dto);
     return result;
   }

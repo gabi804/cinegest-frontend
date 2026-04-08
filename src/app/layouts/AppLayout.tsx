@@ -3,10 +3,12 @@ import {
     AppBar, Avatar, Box, Divider, Drawer, IconButton, List, Menu, MenuItem, Toolbar, Typography, useMediaQuery
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import LogoutIcon from "@mui/icons-material/Logout";
 import SidenavLinks from '../components/SidenavLinks.tsx'
+import AuthService from '../../features/Auth/services/AuthService';
 
 const DRAWER_WIDTH = 260;
 
@@ -14,16 +16,30 @@ const Main = styled("main")(({ theme }) => ({
   flexGrow: 1,
   padding: theme.spacing(3),
   minHeight: "100dvh",
-  background: "#f5f5f5", // fondo claro suave
+  background: "#f5f5f5", 
 }));
 
 export default function AppLayout() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const mdUp = useMediaQuery(theme.breakpoints.up("md"));
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const adminData = AuthService.getAdminData();
+
+  React.useEffect(() => {
+    if (!AuthService.isAuthenticated()) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const handleDrawerToggle = () => setMobileOpen((p) => !p);
+
+  const handleLogout = () => {
+    AuthService.removeToken();
+    setAnchorEl(null);
+    navigate('/login');
+  };
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "white", color: "#333" }}>
@@ -74,11 +90,19 @@ export default function AppLayout() {
             <NotificationsNoneOutlinedIcon />
           </IconButton>
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ ml: 0.5 }}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: "#90caf9", color: "white" }}>LF</Avatar>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: "#90caf9", color: "white" }}>
+              {adminData?.name?.charAt(0) || 'A'}
+            </Avatar>
           </IconButton>
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={() => setAnchorEl(null)}>Profile</MenuItem>
-            <MenuItem onClick={() => setAnchorEl(null)}>Logout</MenuItem>
+            <MenuItem disabled>
+              <Typography variant="body2">{adminData?.name || 'Admin'}</Typography>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <LogoutIcon sx={{ mr: 1, fontSize: 20 }} />
+              <Typography variant="body2">Logout</Typography>
+            </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>

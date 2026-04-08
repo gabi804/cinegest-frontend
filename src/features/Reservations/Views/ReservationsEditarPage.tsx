@@ -74,7 +74,7 @@ export default function ReservationsEditarPage() {
       <Paper sx={{ p: 4, maxWidth: 500, mx: 'auto', borderRadius: 3, background: 'linear-gradient(135deg, #ffffff, #e3f2fd)', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <FormControl fullWidth>
-            <InputLabel>Usuario</InputLabel>
+            <InputLabel>Cliente</InputLabel>
             <Select value={userId} onChange={(e) => setUserId(Number(e.target.value))}>
               {users.map((u) => (
                 <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>

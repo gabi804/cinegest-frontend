@@ -8,6 +8,11 @@ export class UsersService {
         return result.data;
     }
 
+    static async searchUsers(q: string): Promise<User[]> {
+        const result = await api.get<User[]>('/users', { params: { q } });
+        return result.data;
+    }
+
     static async crearUser(dto: UserCrearDto) {
         const result = await api.post('/users', dto);
         return result.data;
@@ -19,7 +24,7 @@ export class UsersService {
     }
 
     static async actualizarUser(id: number, dto: Partial<User>) {
-        const result = await api.post(`/users/${id}`, dto);
+        const result = await api.put(`/users/${id}`, dto);
         return result.data;
     }
 

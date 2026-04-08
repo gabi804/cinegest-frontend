@@ -8,6 +8,7 @@ export default function MoviesCrearPage() {
   const [title, setTitle] = useState("");
   const [genre, setGenre] = useState("");
   const [duration, setDuration] = useState<number | string>(0);
+  const [subtitled, setSubtitled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function MoviesCrearPage() {
     if (err) return setSnack({ open: true, message: err, severity: 'error' });
     setLoading(true);
     try {
-      const dto: MovieCreateDto = { title: title.trim(), genre: genre.trim(), duration: Number(duration) };
+    const dto: MovieCreateDto = { title: title.trim(), genre: genre.trim(), duration: Number(duration), subtitled };
       await MoviesService.crearMovie(dto);
       setSnack({ open: true, message: 'Película creada', severity: 'success' });
       setTimeout(() => navigate('/movies'), 700);
@@ -65,6 +66,10 @@ export default function MoviesCrearPage() {
             onChange={(e) => setDuration(e.target.value)}
             fullWidth
           />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <input id="subtitled" type="checkbox" checked={subtitled} onChange={e => setSubtitled(e.target.checked)} />
+            <label htmlFor="subtitled">Subtitulada</label>
+          </Box>
           <Button
             variant="contained"
             onClick={handleSubmit}

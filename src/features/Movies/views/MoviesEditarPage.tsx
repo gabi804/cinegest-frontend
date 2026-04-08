@@ -12,6 +12,7 @@ export default function MoviesEditarPage() {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [duration, setDuration] = useState<number>(90);
+  const [subtitled, setSubtitled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'error' }>({ open: false, message: '', severity: 'success' });
@@ -32,6 +33,7 @@ export default function MoviesEditarPage() {
           setTitle(m.title);
           setGenre(m.genre ?? '');
           setDuration(m.duration ?? 90);
+          setSubtitled(!!m.subtitled);
         }
       } catch (e: any) {
         setSnack({ open: true, message: e?.message || 'Error al cargar la película', severity: 'error' });
@@ -47,7 +49,7 @@ export default function MoviesEditarPage() {
     if (!movieId) return;
     setSaving(true);
     try {
-      const dto: MovieUpdateDto = { id: movieId, title: title.trim(), genre: genre.trim(), duration };
+      const dto: MovieUpdateDto = { id: movieId, title: title.trim(), genre: genre.trim(), duration, subtitled };
       await MoviesService.actualizarMovie(movieId, dto);
       setSnack({ open: true, message: 'Película actualizada', severity: 'success' });
       setTimeout(() => navigate('/movies'), 700);
@@ -77,6 +79,10 @@ export default function MoviesEditarPage() {
             onChange={e => setDuration(Number(e.target.value))}
             fullWidth
           />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <input id="subtitled_edit" type="checkbox" checked={subtitled} onChange={e => setSubtitled(e.target.checked)} />
+            <label htmlFor="subtitled_edit">Subtitulada</label>
+          </Box>
 
           <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <Button
